@@ -29,16 +29,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Compile PyQt6 Application with PyInstaller
-        run: |
-          pyinstaller --noconfirm --onefile --windowed --name "Omnichannel_AI_Manager" ^
-            --hidden-import=ui ^
-            --hidden-import=PyQt6 ^
-            --hidden-import=pandas ^
-            --hidden-import=openpyxl ^
-            --hidden-import=supabase ^
-            --hidden-import=google.generativeai ^
-            --hidden-import=twilio ^
-            --hidden-import=pyttsx3 ^
+        run: pyinstaller --noconfirm --onefile --windowed --name "Omnichannel_AI_Manager" --hidden-import=ui --hidden-import=PyQt6 --hidden-import=pandas --hidden-import=openpyxl --hidden-import=supabase --hidden-import=google.generativeai --hidden-import=twilio --hidden-import=pyttsx3 main.py
             --hidden-import=speech_recognition ^
             --hidden-import=cv2 ^
             --hidden-import=mediapipe ^
