@@ -1,0 +1,57 @@
+name: Build and Release Windows EXE
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile PyQt6 Application with PyInstaller
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name "Omnichannel_AI_Manager" ^
+            --hidden-import=ui ^
+            --hidden-import=PyQt6 ^
+            --hidden-import=pandas ^
+            --hidden-import=openpyxl ^
+            --hidden-import=supabase ^
+            --hidden-import=google.generativeai ^
+            --hidden-import=twilio ^
+            --hidden-import=pyttsx3 ^
+            --hidden-import=speech_recognition ^
+            --hidden-import=cv2 ^
+            --hidden-import=mediapipe ^
+            main.py
+
+      - name: Create Tag and Publish GitHub Release v4.0.0
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v4.0.0
+          name: Omnichannel AI Manager v4.0.0
+          body: "Automated cloud build of Omnichannel AI Manager & Virtual Agent."
+          draft: false
+          prerelease: false
+          files: dist/Omnichannel_AI_Manager.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
