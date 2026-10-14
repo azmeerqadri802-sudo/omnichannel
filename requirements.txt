@@ -1,0 +1,15 @@
+﻿PyQt6>=6.6.0
+pandas>=2.1.0
+openpyxl>=3.1.2
+requests>=2.31.0
+supabase>=2.3.0
+google-generativeai>=0.4.0
+opencv-python>=4.9.0.80
+mediapipe>=0.10.9
+twilio>=8.12.0
+SpeechRecognition>=3.10.1
+pyttsx3>=2.90
+google-api-python-client>=2.116.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+pyinstaller>=6.3.0
