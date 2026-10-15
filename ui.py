@@ -1,4 +1,4 @@
-import os
+﻿import os
 import math
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QRectF
 from PyQt6.QtGui import (
@@ -17,11 +17,11 @@ class NeonToggleSwitch(QWidget):
 
     def __init__(self, checked=True, parent=None):
         super().__init__(parent)
-        self._checked = checked
-        self.setFixedSize(56, 28)
+        self._checked = bool(checked)
+        self.setFixedSize(52, 26)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-    def isChecked(self):
+    def isChecked(self) -> bool:
         return self._checked
 
     def setChecked(self, val: bool):
@@ -29,9 +29,10 @@ class NeonToggleSwitch(QWidget):
         self.update()
 
     def mousePressEvent(self, event):
-        self._checked = not self._checked
-        self.toggled.emit(self._checked)
-        self.update()
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._checked = not self._checked
+            self.toggled.emit(self._checked)
+            self.update()
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -39,22 +40,22 @@ class NeonToggleSwitch(QWidget):
         rect = QRectF(2, 2, self.width() - 4, self.height() - 4)
         grad = QLinearGradient(rect.topLeft(), rect.topRight())
         if self._checked:
-            grad.setColorAt(0.0, QColor(45, 95, 190, 200))
-            grad.setColorAt(1.0, QColor(0, 235, 180, 230))
-            border_col = QColor(0, 255, 200, 220)
+            grad.setColorAt(0.0, QColor(0, 180, 215, 210))
+            grad.setColorAt(1.0, QColor(0, 240, 175, 240))
+            border_col = QColor(0, 255, 200, 230)
         else:
-            grad.setColorAt(0.0, QColor(30, 35, 55, 200))
-            grad.setColorAt(1.0, QColor(50, 55, 80, 200))
-            border_col = QColor(100, 115, 150, 150)
+            grad.setColorAt(0.0, QColor(30, 35, 55, 210))
+            grad.setColorAt(1.0, QColor(45, 52, 75, 210))
+            border_col = QColor(110, 120, 150, 150)
 
-        p.setPen(QPen(border_col, 1.5))
+        p.setPen(QPen(border_col, 1.4))
         p.setBrush(QBrush(grad))
-        p.drawRoundedRect(rect, 12, 12)
+        p.drawRoundedRect(rect, 11, 11)
 
-        knob_x = self.width() - 24 if self._checked else 6
+        knob_x = self.width() - 22 if self._checked else 5
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(220, 255, 250) if self._checked else QColor(150, 160, 185))
-        p.drawEllipse(QRectF(knob_x, 5, 18, 18))
+        p.setBrush(QColor(235, 255, 250) if self._checked else QColor(145, 155, 180))
+        p.drawEllipse(QRectF(knob_x, 4.5, 17, 17))
 
 
 class AIOrbVisualizerWidget(QWidget):
@@ -178,6 +179,11 @@ class MultiStoreAnalyticsWidget(QWidget):
         self.bar_cyan = [14, 24, 22, 32, 26, 36, 33, 39, 44]
         self.bar_purple = [10, 18, 16, 25, 20, 28, 24, 30, 35]
         self.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+
+    def record_live_activity(self, boost: int = 12):
+        self.sales_series[-1] = min(250, self.sales_series[-1] + boost)
+        self.bar_cyan[-1] = min(50, self.bar_cyan[-1] + max(2, boost // 5))
+        self.update()
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -404,7 +410,7 @@ class TabbedSettingsModal(QDialog):
         self.setWindowTitle("SETTINGS (TABBED)")
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.resize(740, 460)
+        self.resize(750, 470)
         self._drag_pos = None
         self._build_ui()
 
@@ -495,20 +501,149 @@ class TabbedSettingsModal(QDialog):
         vbox.addLayout(body, 1)
 
     @staticmethod
-    def _build_status_row(initial_state: bool):
+    def _build_status_toggle_row(initial_state: bool):
         row = QHBoxLayout()
         toggle = NeonToggleSwitch(initial_state)
-        lbl = QLabel("CONNECTED / ACTIVE (ON)" if initial_state else "DISCONNECTED (OFF)")
-        lbl.setStyleSheet("color: #00ffa6; font-weight: bold; font-size: 12px;" if initial_state else "color: #ff6b81; font-weight: bold; font-size: 12px;")
-        toggle.toggled.connect(lambda st: (
-            lbl.setText("CONNECTED / ACTIVE (ON)" if st else "DISCONNECTED (OFF)"),
-            lbl.setStyleSheet("color: #00ffa6; font-weight: bold; font-size: 12px;" if st else "color: #ff6b81; font-weight: bold; font-size: 12px;")
-        ))
+        lbl = QLabel("CONNECTED / ACTIVE (ON)" if initial_state else "DISCONNECTED / INACTIVE (OFF)")
+        lbl.setStyleSheet(
+            "color: #00ffa6; font-weight: bold; font-size: 12px;"
+            if initial_state else
+            "color: #ff6b81; font-weight: bold; font-size: 12px;"
+        )
+
+        def _on_toggle(state: bool):
+            lbl.setText("CONNECTED / ACTIVE (ON)" if state else "DISCONNECTED / INACTIVE (OFF)")
+            lbl.setStyleSheet(
+                "color: #00ffa6; font-weight: bold; font-size: 12px;"
+                if state else
+                "color: #ff6b81; font-weight: bold; font-size: 12px;"
+            )
+
+        toggle.toggled.connect(_on_toggle)
         row.addWidget(toggle)
-        row.addSpacing(8)
+        row.addSpacing(10)
         row.addWidget(lbl)
         row.addStretch()
-        return row, toggle
+        return row, toggle, lbl
+
+    def _create_general_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(12, 6, 12, 6)
+        cfg = self.db.config.get("general", {})
+
+        hdr = QLabel("General, Gemini AI & Supabase Cloud")
+        hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
+        layout.addWidget(hdr)
+
+        grid = QGridLayout()
+        grid.addWidget(QLabel("File name / Group"), 0, 0)
+        self.gen_group = QLineEdit(cfg.get("group_name", "Omnichannel AI Manager Group"))
+        grid.addWidget(self.gen_group, 0, 1)
+
+        grid.addWidget(QLabel("Keyword"), 1, 0)
+        self.gen_keyword = QComboBox()
+        self.gen_keyword.addItems(["Google API", "Amazon SP-API", "Shopify GraphQL", "Supabase Cloud"])
+        grid.addWidget(self.gen_keyword, 1, 1)
+
+        grid.addWidget(QLabel("Supabase URL"), 2, 0)
+        self.gen_supa_url = QLineEdit(cfg.get("supabase_url", ""))
+        self.gen_supa_url.setPlaceholderText("https://xyzcompany.supabase.co")
+        grid.addWidget(self.gen_supa_url, 2, 1)
+
+        grid.addWidget(QLabel("Supabase Key"), 3, 0)
+        self.gen_supa_key = QLineEdit(cfg.get("supabase_key", ""))
+        self.gen_supa_key.setEchoMode(QLineEdit.EchoMode.Password)
+        grid.addWidget(self.gen_supa_key, 3, 1)
+
+        grid.addWidget(QLabel("Gemini API Key"), 4, 0)
+        self.gen_gemini_key = QLineEdit(cfg.get("gemini_api_key", ""))
+        self.gen_gemini_key.setEchoMode(QLineEdit.EchoMode.Password)
+        grid.addWidget(self.gen_gemini_key, 4, 1)
+
+        grid.addWidget(QLabel("Webcam Gesture AI"), 5, 0)
+        self.gen_gesture_toggle = NeonToggleSwitch(cfg.get("gesture_control_enabled", False))
+        grid.addWidget(self.gen_gesture_toggle, 5, 1)
+
+        layout.addLayout(grid)
+        layout.addStretch()
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(self._create_save_button())
+        layout.addLayout(btn_row)
+        self.stack.addWidget(page)
+
+    def _create_shopify_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(12, 6, 12, 6)
+        cfg = self.db.config.get("shopify", {})
+
+        hdr = QLabel("Shopify Admin API Configuration")
+        hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
+        layout.addWidget(hdr)
+
+        grid = QGridLayout()
+        grid.setVerticalSpacing(12)
+        grid.addWidget(QLabel("Store URL"), 0, 0)
+        self.shop_url = QLineEdit(cfg.get("shop_url", ""))
+        self.shop_url.setPlaceholderText("https://your-store.myshopify.com")
+        grid.addWidget(self.shop_url, 0, 1)
+
+        grid.addWidget(QLabel("Access Token"), 1, 0)
+        self.shop_token = QLineEdit(cfg.get("access_token", ""))
+        self.shop_token.setEchoMode(QLineEdit.EchoMode.Password)
+        self.shop_token.setPlaceholderText("shpat_xxxxxxxxxxxxxxxxxxxxxxxx")
+        grid.addWidget(self.shop_token, 1, 1)
+
+        grid.addWidget(QLabel("Status"), 2, 0)
+        row, self.shop_toggle, _ = self._build_status_toggle_row(cfg.get("status", True))
+        grid.addLayout(row, 2, 1)
+
+        layout.addLayout(grid)
+        layout.addStretch()
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(self._create_save_button())
+        layout.addLayout(btn_row)
+        self.stack.addWidget(page)
+
+    def _create_daraz_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(12, 6, 12, 6)
+        cfg = self.db.config.get("daraz", {})
+
+        hdr = QLabel("Daraz Open Platform Configuration")
+        hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
+        layout.addWidget(hdr)
+
+        grid = QGridLayout()
+        grid.setVerticalSpacing(12)
+        grid.addWidget(QLabel("App Key"), 0, 0)
+        self.drz_key = QLineEdit(cfg.get("app_key", ""))
+        grid.addWidget(self.drz_key, 0, 1)
+
+        grid.addWidget(QLabel("App Secret"), 1, 0)
+        self.drz_secret = QLineEdit(cfg.get("app_secret", ""))
+        self.drz_secret.setEchoMode(QLineEdit.EchoMode.Password)
+        grid.addWidget(self.drz_secret, 1, 1)
+
+        grid.addWidget(QLabel("Seller ID"), 2, 0)
+        self.drz_seller = QLineEdit(cfg.get("seller_id", ""))
+        grid.addWidget(self.drz_seller, 2, 1)
+
+        grid.addWidget(QLabel("Status"), 3, 0)
+        row, self.drz_toggle, _ = self._build_status_toggle_row(cfg.get("status", True))
+        grid.addLayout(row, 3, 1)
+
+        layout.addLayout(grid)
+        layout.addStretch()
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(self._create_save_button())
+        layout.addLayout(btn_row)
+        self.stack.addWidget(page)
 
     def _create_amazon_page(self):
         page = QWidget()
@@ -544,10 +679,10 @@ class TabbedSettingsModal(QDialog):
         grid.addWidget(self.amz_seller, 3, 1)
 
         grid.addWidget(QLabel("Status"), 4, 0)
-        row, self.amz_toggle = self._build_status_row(cfg.get("status", True))
+        row, self.amz_toggle, _ = self._build_status_toggle_row(cfg.get("status", True))
         grid.addLayout(row, 4, 1)
-
         layout.addLayout(grid)
+
         note = QLabel("Authorize SP-API credentials for real-time inventory and sales synchronization.")
         note.setStyleSheet("color: #8fa5cc; font-size: 11px;")
         layout.addWidget(note)
@@ -559,132 +694,36 @@ class TabbedSettingsModal(QDialog):
         layout.addLayout(btn_row)
         self.stack.addWidget(page)
 
-    def _create_general_page(self):
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(12, 6, 12, 6)
-        cfg = self.db.config.get("general", {})
-
-        hdr = QLabel("General, Gemini AI & Supabase Cloud")
-        hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
-        layout.addWidget(hdr)
-
-        grid = QGridLayout()
-        grid.addWidget(QLabel("File name / Group"), 0, 0)
-        self.gen_group = QLineEdit(cfg.get("group_name", "Omnichannel AI Manager Group"))
-        grid.addWidget(self.gen_group, 0, 1)
-
-        grid.addWidget(QLabel("Keyword"), 1, 0)
-        self.gen_keyword = QComboBox()
-        self.gen_keyword.addItems(["Google API", "Amazon SP-API", "Shopify GraphQL", "Supabase Cloud"])
-        grid.addWidget(self.gen_keyword, 1, 1)
-
-        grid.addWidget(QLabel("Supabase URL"), 2, 0)
-        self.gen_supa_url = QLineEdit(cfg.get("supabase_url", ""))
-        grid.addWidget(self.gen_supa_url, 2, 1)
-
-        grid.addWidget(QLabel("Supabase Key"), 3, 0)
-        self.gen_supa_key = QLineEdit(cfg.get("supabase_key", ""))
-        self.gen_supa_key.setEchoMode(QLineEdit.EchoMode.Password)
-        grid.addWidget(self.gen_supa_key, 3, 1)
-
-        grid.addWidget(QLabel("Gemini API Key"), 4, 0)
-        self.gen_gemini_key = QLineEdit(cfg.get("gemini_api_key", ""))
-        self.gen_gemini_key.setEchoMode(QLineEdit.EchoMode.Password)
-        grid.addWidget(self.gen_gemini_key, 4, 1)
-
-        grid.addWidget(QLabel("Webcam Gesture AI"), 5, 0)
-        self.gen_gesture_toggle = NeonToggleSwitch(cfg.get("gesture_control_enabled", False))
-        grid.addWidget(self.gen_gesture_toggle, 5, 1)
-
-        layout.addLayout(grid)
-        layout.addStretch()
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        btn_row.addWidget(self._create_save_button())
-        layout.addLayout(btn_row)
-        self.stack.addWidget(page)
-
-    def _create_shopify_page(self):
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(12, 6, 12, 6)
-        cfg = self.db.config.get("shopify", {})
-        hdr = QLabel("Shopify Admin API Configuration")
-        hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
-        layout.addWidget(hdr)
-        grid = QGridLayout()
-        grid.addWidget(QLabel("Store URL"), 0, 0)
-        self.shop_url = QLineEdit(cfg.get("shop_url", ""))
-        grid.addWidget(self.shop_url, 0, 1)
-        grid.addWidget(QLabel("Access Token"), 1, 0)
-        self.shop_token = QLineEdit(cfg.get("access_token", ""))
-        self.shop_token.setEchoMode(QLineEdit.EchoMode.Password)
-        grid.addWidget(self.shop_token, 1, 1)
-        grid.addWidget(QLabel("Status"), 2, 0)
-        row, self.shop_toggle = self._build_status_row(cfg.get("status", True))
-        grid.addLayout(row, 2, 1)
-        layout.addLayout(grid)
-        layout.addStretch()
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        btn_row.addWidget(self._create_save_button())
-        layout.addLayout(btn_row)
-        self.stack.addWidget(page)
-
-    def _create_daraz_page(self):
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(12, 6, 12, 6)
-        cfg = self.db.config.get("daraz", {})
-        hdr = QLabel("Daraz Open Platform Configuration")
-        hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
-        layout.addWidget(hdr)
-        grid = QGridLayout()
-        grid.addWidget(QLabel("App Key"), 0, 0)
-        self.drz_key = QLineEdit(cfg.get("app_key", ""))
-        grid.addWidget(self.drz_key, 0, 1)
-        grid.addWidget(QLabel("App Secret"), 1, 0)
-        self.drz_secret = QLineEdit(cfg.get("app_secret", ""))
-        self.drz_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        grid.addWidget(self.drz_secret, 1, 1)
-        grid.addWidget(QLabel("Seller ID"), 2, 0)
-        self.drz_seller = QLineEdit(cfg.get("seller_id", ""))
-        grid.addWidget(self.drz_seller, 2, 1)
-        grid.addWidget(QLabel("Status"), 3, 0)
-        row, self.drz_toggle = self._build_status_row(cfg.get("status", True))
-        grid.addLayout(row, 3, 1)
-        layout.addLayout(grid)
-        layout.addStretch()
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        btn_row.addWidget(self._create_save_button())
-        layout.addLayout(btn_row)
-        self.stack.addWidget(page)
-
     def _create_ebay_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(12, 6, 12, 6)
         cfg = self.db.config.get("ebay", {})
+
         hdr = QLabel("eBay REST & Fulfillment API")
         hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
         layout.addWidget(hdr)
+
         grid = QGridLayout()
+        grid.setVerticalSpacing(12)
         grid.addWidget(QLabel("App ID"), 0, 0)
         self.ebay_app = QLineEdit(cfg.get("app_id", ""))
         grid.addWidget(self.ebay_app, 0, 1)
+
         grid.addWidget(QLabel("Cert ID"), 1, 0)
         self.ebay_cert = QLineEdit(cfg.get("cert_id", ""))
         self.ebay_cert.setEchoMode(QLineEdit.EchoMode.Password)
         grid.addWidget(self.ebay_cert, 1, 1)
+
         grid.addWidget(QLabel("OAuth Token"), 2, 0)
         self.ebay_token = QLineEdit(cfg.get("oauth_token", ""))
         self.ebay_token.setEchoMode(QLineEdit.EchoMode.Password)
         grid.addWidget(self.ebay_token, 2, 1)
+
         grid.addWidget(QLabel("Status"), 3, 0)
-        row, self.ebay_toggle = self._build_status_row(cfg.get("status", True))
+        row, self.ebay_toggle, _ = self._build_status_toggle_row(cfg.get("status", True))
         grid.addLayout(row, 3, 1)
+
         layout.addLayout(grid)
         layout.addStretch()
         btn_row = QHBoxLayout()
@@ -698,23 +737,30 @@ class TabbedSettingsModal(QDialog):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(12, 6, 12, 6)
         cfg = self.db.config.get("woocommerce", {})
+
         hdr = QLabel("WooCommerce REST v3 Configuration")
         hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
         layout.addWidget(hdr)
+
         grid = QGridLayout()
+        grid.setVerticalSpacing(12)
         grid.addWidget(QLabel("Store URL"), 0, 0)
         self.woo_url = QLineEdit(cfg.get("store_url", ""))
         grid.addWidget(self.woo_url, 0, 1)
+
         grid.addWidget(QLabel("Consumer Key"), 1, 0)
         self.woo_ck = QLineEdit(cfg.get("consumer_key", ""))
         grid.addWidget(self.woo_ck, 1, 1)
+
         grid.addWidget(QLabel("Consumer Secret"), 2, 0)
         self.woo_cs = QLineEdit(cfg.get("consumer_secret", ""))
         self.woo_cs.setEchoMode(QLineEdit.EchoMode.Password)
         grid.addWidget(self.woo_cs, 2, 1)
+
         grid.addWidget(QLabel("Status"), 3, 0)
-        row, self.woo_toggle = self._build_status_row(cfg.get("status", True))
+        row, self.woo_toggle, _ = self._build_status_toggle_row(cfg.get("status", True))
         grid.addLayout(row, 3, 1)
+
         layout.addLayout(grid)
         layout.addStretch()
         btn_row = QHBoxLayout()
@@ -728,23 +774,30 @@ class TabbedSettingsModal(QDialog):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(12, 6, 12, 6)
         cfg = self.db.config.get("tiktok", {})
+
         hdr = QLabel("TikTok Shop & Studio Partner API")
         hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
         layout.addWidget(hdr)
+
         grid = QGridLayout()
+        grid.setVerticalSpacing(12)
         grid.addWidget(QLabel("App Key"), 0, 0)
         self.tts_key = QLineEdit(cfg.get("app_key", ""))
         grid.addWidget(self.tts_key, 0, 1)
+
         grid.addWidget(QLabel("App Secret"), 1, 0)
         self.tts_secret = QLineEdit(cfg.get("app_secret", ""))
         self.tts_secret.setEchoMode(QLineEdit.EchoMode.Password)
         grid.addWidget(self.tts_secret, 1, 1)
+
         grid.addWidget(QLabel("Shop ID"), 2, 0)
         self.tts_shop = QLineEdit(cfg.get("shop_id", ""))
         grid.addWidget(self.tts_shop, 2, 1)
+
         grid.addWidget(QLabel("Status"), 3, 0)
-        row, self.tts_toggle = self._build_status_row(cfg.get("status", True))
+        row, self.tts_toggle, _ = self._build_status_toggle_row(cfg.get("status", True))
         grid.addLayout(row, 3, 1)
+
         layout.addLayout(grid)
         layout.addStretch()
         btn_row = QHBoxLayout()
@@ -758,24 +811,31 @@ class TabbedSettingsModal(QDialog):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(12, 6, 12, 6)
         cfg = self.db.config.get("google_api", {})
+
         hdr = QLabel("Gmail API, WhatsApp Cloud & Twilio Voice")
         hdr.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
         layout.addWidget(hdr)
+
         grid = QGridLayout()
+        grid.setVerticalSpacing(12)
         grid.addWidget(QLabel("Gmail Token Path"), 0, 0)
         self.goog_token = QLineEdit(cfg.get("token_json", "token.json"))
         grid.addWidget(self.goog_token, 0, 1)
+
         grid.addWidget(QLabel("WhatsApp Token"), 1, 0)
         self.wa_token = QLineEdit(cfg.get("whatsapp_token", ""))
         self.wa_token.setEchoMode(QLineEdit.EchoMode.Password)
         grid.addWidget(self.wa_token, 1, 1)
+
         grid.addWidget(QLabel("Twilio SID"), 2, 0)
         self.tw_sid = QLineEdit(cfg.get("twilio_sid", ""))
         grid.addWidget(self.tw_sid, 2, 1)
+
         grid.addWidget(QLabel("Twilio Token"), 3, 0)
         self.tw_token = QLineEdit(cfg.get("twilio_token", ""))
         self.tw_token.setEchoMode(QLineEdit.EchoMode.Password)
         grid.addWidget(self.tw_token, 3, 1)
+
         layout.addLayout(grid)
         layout.addStretch()
         btn_row = QHBoxLayout()
@@ -813,30 +873,37 @@ class TabbedSettingsModal(QDialog):
         cfg["general"]["supabase_key"] = self.gen_supa_key.text().strip()
         cfg["general"]["gemini_api_key"] = self.gen_gemini_key.text().strip()
         cfg["general"]["gesture_control_enabled"] = self.gen_gesture_toggle.isChecked()
+
         cfg["shopify"]["shop_url"] = self.shop_url.text().strip()
         cfg["shopify"]["access_token"] = self.shop_token.text().strip()
         cfg["shopify"]["status"] = self.shop_toggle.isChecked()
+
+        cfg["daraz"]["app_key"] = self.drz_key.text().strip()
+        cfg["daraz"]["app_secret"] = self.drz_secret.text().strip()
+        cfg["daraz"]["seller_id"] = self.drz_seller.text().strip()
+        cfg["daraz"]["status"] = self.drz_toggle.isChecked()
+
         cfg["amazon"]["client_id"] = self.amz_client_id.text().strip()
         cfg["amazon"]["client_secret"] = self.amz_client_secret.text().strip()
         cfg["amazon"]["iam_role_arn"] = self.amz_arn.text().strip()
         cfg["amazon"]["seller_id"] = self.amz_seller.text().strip()
         cfg["amazon"]["status"] = self.amz_toggle.isChecked()
-        cfg["daraz"]["app_key"] = self.drz_key.text().strip()
-        cfg["daraz"]["app_secret"] = self.drz_secret.text().strip()
-        cfg["daraz"]["seller_id"] = self.drz_seller.text().strip()
-        cfg["daraz"]["status"] = self.drz_toggle.isChecked()
+
         cfg["ebay"]["app_id"] = self.ebay_app.text().strip()
         cfg["ebay"]["cert_id"] = self.ebay_cert.text().strip()
         cfg["ebay"]["oauth_token"] = self.ebay_token.text().strip()
         cfg["ebay"]["status"] = self.ebay_toggle.isChecked()
+
         cfg["woocommerce"]["store_url"] = self.woo_url.text().strip()
         cfg["woocommerce"]["consumer_key"] = self.woo_ck.text().strip()
         cfg["woocommerce"]["consumer_secret"] = self.woo_cs.text().strip()
         cfg["woocommerce"]["status"] = self.woo_toggle.isChecked()
+
         cfg["tiktok"]["app_key"] = self.tts_key.text().strip()
         cfg["tiktok"]["app_secret"] = self.tts_secret.text().strip()
         cfg["tiktok"]["shop_id"] = self.tts_shop.text().strip()
         cfg["tiktok"]["status"] = self.tts_toggle.isChecked()
+
         cfg["google_api"]["token_json"] = self.goog_token.text().strip()
         cfg["google_api"]["whatsapp_token"] = self.wa_token.text().strip()
         cfg["google_api"]["twilio_sid"] = self.tw_sid.text().strip()
